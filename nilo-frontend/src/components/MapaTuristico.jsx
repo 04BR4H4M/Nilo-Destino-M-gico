@@ -319,20 +319,6 @@ export default function MapaTuristico({
 }
 
 // ── Utilidades ─────────────────────────────────────────────────────────────────
-
-function parsearCoords(atractivo) {
-  if (atractivo.geom_wkt) {
-    const match = atractivo.geom_wkt.match(/POINT[^(]*\(\s*([-\d.]+)\s+([-\d.]+)/)
-    if (match) return [parseFloat(match[2]), parseFloat(match[1])]
-  }
-  if (
-  atractivo.lat != null &&
-  atractivo.lon != null
-) {
-  return [atractivo.lat, atractivo.lon]
-}
-}
-
 function formatearDistancia(metros) {
   if (!metros && metros !== 0) return ''
   if (metros < 1000) return `${Math.round(metros)} m`
