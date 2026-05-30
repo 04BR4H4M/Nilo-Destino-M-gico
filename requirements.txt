@@ -1,0 +1,38 @@
+# ──────────────────────────────────────────────
+# API Framework
+# ──────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# ──────────────────────────────────────────────
+# Base de datos (async)
+# ──────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0             # driver async para PostgreSQL
+alembic==1.14.0             # migraciones
+
+# ──────────────────────────────────────────────
+# Datos espaciales
+# ──────────────────────────────────────────────
+geoalchemy2==0.15.2
+shapely==2.0.6              # manipulación de geometrías en Python
+
+# ──────────────────────────────────────────────
+# Validación y configuración
+# ──────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1    # manejo de .env con Pydantic v2
+python-dotenv==1.0.1
+
+# ──────────────────────────────────────────────
+# Utilidades
+# ──────────────────────────────────────────────
+python-jose[cryptography]==3.3.0   # JWT (listo para auth)
+passlib[bcrypt]==1.7.4             # hashing de contraseñas
+httpx==0.28.1                      # cliente HTTP async (tests)
+
+# ──────────────────────────────────────────────
+# Testing
+# ──────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.24.0

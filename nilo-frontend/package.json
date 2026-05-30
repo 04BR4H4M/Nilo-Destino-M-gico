@@ -1,0 +1,26 @@
+{
+  "name": "nilo-destino-magico",
+  "private": true,
+  "version": "1.0.0",
+  "description": "PWA turística para Nilo, Cundinamarca — React + Vite + PostGIS",
+  "type": "module",
+  "scripts": {
+    "dev":     "vite",
+    "build":   "vite build",
+    "preview": "vite preview",
+    "lint":    "eslint src --ext .js,.jsx --report-unused-disable-directives"
+  },
+  "dependencies": {
+    "axios":         "^1.7.9",
+    "leaflet":       "^1.9.4",
+    "react":         "^18.3.1",
+    "react-dom":     "^18.3.1",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite":                 "^6.0.5",
+    "vite-plugin-pwa":      "^0.21.1",
+    "workbox-window":       "^7.3.0"
+  }
+}
