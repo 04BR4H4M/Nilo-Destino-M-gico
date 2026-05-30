@@ -48,7 +48,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { atractivosService } from '../services/api'
-import { filtrarPorRadio } from '../utils/geo'
+import { filtrarPorRadio } from '../utils/geoCompass'
 
 // ── Constantes de IndexedDB ────────────────────────────────────────────────────
 const IDB_NAME        = 'nilo-catalogo-db'

@@ -243,7 +243,7 @@ export default function MapaTuristico({
                   <Popup className="popup-nilo" maxWidth={260} minWidth={240}>
                     {atractivo.imagen_principal && (
                       <img
-                       src={`${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace('/api/v1', '')}${atractivo.imagen_principal}`}
+                      src={`${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace('/api/v1', '')}${atractivo.imagen_principal}`}
                         alt={atractivo.nombre}
                         style={{
                           width: '100%',

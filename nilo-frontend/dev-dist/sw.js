@@ -67,10 +67,14 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-5d155c7a'], (function (workbox) { 'use strict';
+define(['./workbox-5a130785'], (function (workbox) { 'use strict';
 
-  self.skipWaiting();
-  workbox.clientsClaim();
+  self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+      self.skipWaiting();
+    }
+  });
+
   /**
    * The precacheAndRoute() method efficiently caches and responds to
    * requests for URLs in the manifest.
@@ -81,14 +85,37 @@ define(['./workbox-5d155c7a'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.3lh4mhv7mcg"
+    "revision": "0.3qt49hcf1ig"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    allowlist: [/^\/$/]
+    allowlist: [/^\/$/],
+    denylist: [/^\/api\//, /^\/static\//, /\/sw\.js$/, /\/workbox-.*\.js$/]
   }));
-  workbox.registerRoute(/^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i, new workbox.CacheFirst({
-    "cacheName": "osm-tiles",
+  workbox.registerRoute(/^http:\/\/127\.0\.0\.1:8000\/api\//, new workbox.NetworkFirst({
+    "cacheName": "nilo-api-v1",
+    "networkTimeoutSeconds": 4,
+    "matchOptions": {
+      "ignoreSearch": true
+    },
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 86400
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^http:\/\/127\.0\.0\.1:8000\/static\/uploads\//, new workbox.CacheFirst({
+    "cacheName": "nilo-imagenes-atractivos-v1",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 50,
+      maxAgeSeconds: 1296000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.+\.png$/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "nilo-tiles-osm-v1",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 500,
       maxAgeSeconds: 2592000
@@ -96,20 +123,28 @@ define(['./workbox-5d155c7a'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(/^http:\/\/127\.0\.0\.1:8000\/api\/.*/i, new workbox.NetworkFirst({
-    "cacheName": "api-turismo",
-    "networkTimeoutSeconds": 10,
+  workbox.registerRoute(/^https:\/\/tile\.openstreetmap\.org\/.+\.png$/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "nilo-tiles-osm-v1",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 100,
-      maxAgeSeconds: 86400
+      maxEntries: 500,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/[a-c]\.tile\.openstreetmap\.fr\/hot\/.+\.png$/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "nilo-tiles-osm-v1",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 500,
+      maxAgeSeconds: 2592000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
     })]
   }), 'GET');
   workbox.registerRoute(/^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i, new workbox.CacheFirst({
-    "cacheName": "google-fonts",
+    "cacheName": "nilo-fuentes-v1",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 30,
+      maxEntries: 20,
       maxAgeSeconds: 31536000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
