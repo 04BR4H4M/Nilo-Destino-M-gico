@@ -94,6 +94,7 @@ export default function MapaTuristico({
   altura = '100%',
   // 📍 Nuevos props que vienen de useCatalogo (App.jsx)
   filtrar,
+  categoriaActiva,
   estadoCatalogo = 'idle',
   errorCatalogo = null,
   estaOffline = false,
@@ -102,11 +103,20 @@ export default function MapaTuristico({
   forzarSincronizar,
 }) { 
   
-  // 1. Filtrado 100% local (instantáneo, sin red)
+  /// 1. Filtrado 100% local (Distancia + Categoría)
   const atractivosFiltrados = useMemo(() => {
     if (!filtrar) return []
-    return filtrar(lat, lon, radioM)
-  }, [filtrar, lat, lon, radioM])
+    
+    // Etapa A: Filtrar por distancia (lo que ya tenías)
+    const porDistancia = filtrar(lat, lon, radioM)
+    
+    // Etapa B: Filtrar por categoría (lo nuevo)
+    if (!categoriaActiva) return porDistancia
+    return porDistancia.filter(atractivo => {
+      const nombreCat = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;
+      return nombreCat === categoriaActiva;
+    })
+  }, [filtrar, lat, lon, radioM, categoriaActiva]) // <-- 2. Añadimos categoriaActiva aquí
 
   // 2. Memoizar iconos para no recrearlos
   const iconosPorCategoria = useMemo(() => {
@@ -300,10 +310,12 @@ export default function MapaTuristico({
                           </span>
                           <span style={{ fontSize: '0.75rem', color: '#5a6072', fontWeight: '500' }}>
                             {direccion}
+                            
                           </span>
                         </div>
                       </div>
                     </div>
+                    <BotonNavegacion lat={coords[0]} lon={coords[1]} nombre={atractivo.nombre} />
                   </Popup>
                 </Marker>
               )
@@ -339,4 +351,30 @@ function formatearDistancia(metros) {
   if (!metros && metros !== 0) return ''
   if (metros < 1000) return `${Math.round(metros)} m`
   return `${(metros / 1000).toFixed(1)} km`
+}
+
+function BotonNavegacion({ lat, lon, nombre }) {
+  const abrirNavegacion = () => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
+    window.open(url, '_blank', 'noopener');
+  };
+
+  return (
+    <button 
+      onClick={abrirNavegacion}
+      style={{
+        background: 'var(--dorado)',
+        color: 'white',
+        border: 'none',
+        padding: '6px 12px',
+        borderRadius: 'var(--radio-sm)',
+        fontSize: '0.75rem',
+        cursor: 'pointer',
+        marginTop: '8px',
+        width: '100%'
+      }}
+    >
+      📍 Cómo llegar (Google Maps)
+    </button>
+  );
 }
