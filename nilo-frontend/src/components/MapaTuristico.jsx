@@ -20,7 +20,7 @@ import {
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-import { calcularDistanciaLocal, calcularDireccionCardinal } from '../utils/geoCompass';
+import {calcularDireccionCardinal,extraerCoords,haversineM } from '../utils/geoCompass';
 
 // ── Fix iconos Leaflet + Vite ──────────────────────────────────────────────────
 delete L.Icon.Default.prototype._getIconUrl
@@ -43,8 +43,15 @@ const CATEGORIA_COLORES = {
   default:               '#6b4226',
 }
 
-function crearIconoCategoria(categoria) {
-  const color = CATEGORIA_COLORES[categoria] ?? CATEGORIA_COLORES.default
+function crearIconoCategoria(categoriaRaw) {
+  // 1. Extraemos el texto sin importar si viene como Objeto o como String
+  const nombreCategoria = typeof categoriaRaw === 'object' && categoriaRaw !== null 
+    ? categoriaRaw.nombre 
+    : categoriaRaw;
+
+  // 2. Buscamos el color exacto en la paleta (si no existe, usa el café por defecto)
+  const color = CATEGORIA_COLORES[nombreCategoria] ?? CATEGORIA_COLORES.default;
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
       <filter id="sombra" x="-20%" y="-10%" width="140%" height="130%">
@@ -55,6 +62,7 @@ function crearIconoCategoria(categoria) {
         fill="${color}"/>
       <circle cx="14" cy="14" r="6" fill="white" opacity="0.9"/>
     </svg>`
+    
   return L.divIcon({
     html: svg,
     className: '',
@@ -74,6 +82,10 @@ function MapaSkeleton({ mensaje = 'Cargando atractivos…' }) {
   )
 }
 
+function obtenerNombreCategoria(cat) {
+  if (!cat) return 'Desconocido'
+  return typeof cat === 'object' ? cat.nombre : cat
+}
 // ── Componente principal ───────────────────────────────────────────────────────
 export default function MapaTuristico({
   lon = -74.634,
@@ -100,7 +112,8 @@ export default function MapaTuristico({
   const iconosPorCategoria = useMemo(() => {
     const mapa = {}
     atractivosFiltrados.forEach(({ categoria }) => {
-      if (!mapa[categoria]) mapa[categoria] = crearIconoCategoria(categoria)
+      const nombreCat = typeof categoria === 'object' ? categoria.nombre : categoria;
+      if (!mapa[nombreCat]) mapa[nombreCat] = crearIconoCategoria(nombreCat)
     })
     return mapa
   }, [atractivosFiltrados])
@@ -228,10 +241,10 @@ export default function MapaTuristico({
 
             {/* 📍 LOS MARCADORES DEL CATÁLOGO FILTRADOS LOCALMENTE */}
             {atractivosFiltrados.map((atractivo) => {
-              const coords = parsearCoords(atractivo)
+              const coords = extraerCoords(atractivo)
               if (!coords) return null
-
-              const distanciaReal = calcularDistanciaLocal(lat, lon, coords[0], coords[1]);
+              const nombreCategoria = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;  
+              const distanciaReal = atractivo.distancia_m || haversineM(lat, lon, coords[0], coords[1]);
               const direccion = calcularDireccionCardinal(lat, lon, coords[0], coords[1]);
 
               return (
@@ -241,7 +254,7 @@ export default function MapaTuristico({
                   icon={iconosPorCategoria[atractivo.categoria] ?? crearIconoCategoria(atractivo.categoria)}
                 >
                   <Popup className="popup-nilo" maxWidth={260} minWidth={240}>
-                    {atractivo.imagen_principal && (
+                      {atractivo.imagen_principal && (
                       <img
                       src={`${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace('/api/v1', '')}${atractivo.imagen_principal}`}
                         alt={atractivo.nombre}
@@ -257,7 +270,7 @@ export default function MapaTuristico({
                     )}
 
                     <div className="popup-nilo__contenido" style={{ padding: atractivo.imagen_principal ? '12px' : '' }}>
-                      <span className="popup-nilo__categoria">{atractivo.categoria}</span>
+                     <span className="popup-nilo__categoria">{nombreCategoria}</span>
                       <h3 className="popup-nilo__nombre" style={{ marginBottom: '6px' }}>{atractivo.nombre}</h3>
                       
                       {atractivo.descripcion_corta && (
@@ -299,11 +312,14 @@ export default function MapaTuristico({
         )}
       </div>
 
-      {/* ── Leyenda de categorías ── */}
+     {/* ── Leyenda de categorías ── */}
       {atractivosFiltrados.length > 0 && (
         <footer className="mapa-turistico__leyenda" aria-label="Leyenda del mapa">
           {Object.entries(CATEGORIA_COLORES)
-            .filter(([cat]) => cat !== 'default' && atractivosFiltrados.some((a) => a.categoria === cat))
+            .filter(([cat]) => cat !== 'default' && atractivosFiltrados.some((a) => {
+              const nombreCat = typeof a.categoria === 'object' ? a.categoria.nombre : a.categoria;
+              return nombreCat === cat;
+            }))
             .map(([cat, color]) => (
               <span key={cat} className="leyenda-item">
                 <svg width="10" height="10" viewBox="0 0 10 10">

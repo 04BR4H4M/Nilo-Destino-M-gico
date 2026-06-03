@@ -178,7 +178,7 @@ export function useCatalogo() {
     try {
       // Solicitar TODO el catálogo — sin paginación, sin filtros geoespaciales.
       // por_pagina=1000: ajustar si el municipio tiene más de 1000 atractivos.
-      const { data } = await atractivosService.getAll({ por_pagina: 1000, solo_activos: true })
+      const { data } = await atractivosService.getAll()
 
       // La API devuelve { items: [...], total, pagina, por_pagina }
       const items = data?.items ?? (Array.isArray(data) ? data : [])

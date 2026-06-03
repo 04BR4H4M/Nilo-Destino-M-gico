@@ -583,7 +583,7 @@ $$;
 INSERT INTO turismo.categorias_atractivo (nombre, descripcion, icono) VALUES
     ('Patrimonio Cultural', 'Monumentos, plazas y edificios de valor histórico', 'patrimonio'),
     ('Naturaleza',          'Parques naturales, ríos y ecosistemas',              'naturaleza'),
-    ('Gastronomía',         'Restaurantes y mercados con gastronomía típica',     'gastronomia'),
+    ('Gastronomía',         'Restaurantes y mercados con gastronomía típica',     'gastronomía'),
     ('Aventura',            'Deportes extremos y ecoturismo activo',              'aventura');
 
 -- Insertar la Ruta del Himno Nacional 

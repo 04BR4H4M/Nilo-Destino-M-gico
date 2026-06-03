@@ -16,6 +16,7 @@ import MapaTuristico from './components/MapaTuristico'
 import AdminPanel from './components/AdminPanel'
 import { healthService } from './services/api'
 import EstadoConexion from './components/EstadoConexion'
+import { useCatalogo } from './hooks/useCatalogo'
 
 // ─── CSS GLOBAL ───────────────────────────────────────────────────────────────
 // Declarado como string e inyectado vía <style> para tenerlo todo en un archivo.
@@ -620,10 +621,11 @@ export default function App() {
   const [radioM, setRadioM] = useState(5000)
   const [apiStatus, setApiStatus] = useState('comprobando')
 
-  // NUEVO ESTADO: Controla si vemos el mapa turístico o el panel de admin
+  // ── Vista activa: turista ↔ admin ─────────────────────────────────────────────
   const [vistaActual, setVistaActual] = useState('turista')
 
-  // Estados para la geolocalización
+  // ── Geolocalización del usuario ───────────────────────────────────────────────
+  // Fallback a coordenadas de Nilo si el usuario deniega o hay error.
   const [lon, setLon] = useState(-74.634)
   const [lat, setLat] = useState(4.305)
   const [ubicacionCargando, setUbicacionCargando] = useState(true)
@@ -647,6 +649,21 @@ export default function App() {
     }
   }, [])
 
+  // ── Catálogo Offline-First ────────────────────────────────────────────────────
+  // Un solo fetch a /api/v1/atractivos?por_pagina=1000 al montar la app.
+  // Los datos se persisten en IndexedDB. El filtrado por radio se hace localmente
+  // con Haversine, usando las coordenadas reales del usuario.
+  const {
+    estado:        estadoCatalogo,
+    error:         errorCatalogo,
+    estaOffline,
+    datosDesdeCache,
+    actualizadoEn,
+    filtrar,
+    forzarSincronizar,
+  } = useCatalogo()
+
+  // Verificar estado del backend al montar
   useEffect(() => {
     healthService
       .check()
@@ -654,6 +671,7 @@ export default function App() {
       .catch(() => setApiStatus('error'))
   }, [])
 
+  // Inyectar estilos globales (equivale a index.css en un proyecto normal)
   useEffect(() => {
     const tag = document.createElement('style')
     tag.textContent = ESTILOS_GLOBALES
@@ -663,7 +681,7 @@ export default function App() {
 
   const labelStatus = {
     comprobando: 'Conectando…',
-    ok: 'API en línea',
+    ok:    'API en línea',
     error: 'API inaccesible',
   }
 
@@ -695,6 +713,7 @@ export default function App() {
             >
               Administración
             </button>
+
             <div
               className={`status-dot status-dot--${apiStatus === 'comprobando' ? '' : apiStatus}`}
               role="status"
@@ -718,6 +737,7 @@ export default function App() {
 
           {/* Panel lateral izquierdo */}
           <aside className="panel-lateral" aria-label="Información del municipio">
+
             <div className="carta">
               <p className="carta__etiqueta">Cundinamarca · Colombia</p>
               <h1 className="carta__titulo">Nilo,<br/>Destino Mágico</h1>
@@ -736,7 +756,7 @@ export default function App() {
               <div className="dato-fila">
                 <span className="dato-fila__clave">Tu ubicación</span>
                 <span className="dato-fila__valor">
-                  {lat.toFixed(4)}°N, {Math.abs(lon).toFixed(4)}°O
+                  {ubicacionCargando ? '…' : `${lat.toFixed(4)}°N, ${Math.abs(lon).toFixed(4)}°O`}
                 </span>
               </div>
             </div>
@@ -771,13 +791,8 @@ export default function App() {
                 ['Aventura',            '#1a4f8a'],
               ].map(([nombre, color]) => (
                 <div className="dato-fila" key={nombre}>
-                  <span
-                    className="dato-fila__clave"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    <svg width="10" height="10">
-                      <circle cx="5" cy="5" r="5" fill={color} />
-                    </svg>
+                  <span className="dato-fila__clave" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <svg width="10" height="10"><circle cx="5" cy="5" r="5" fill={color}/></svg>
                     {nombre}
                   </span>
                 </div>
@@ -786,11 +801,7 @@ export default function App() {
           </aside>
 
           {/* Mapa principal */}
-          <div
-            className="mapa-wrap"
-            role="region"
-            aria-label="Mapa interactivo de atractivos turísticos"
-          >
+          <div className="mapa-wrap" role="region" aria-label="Mapa interactivo de atractivos turísticos">
             {ubicacionCargando ? (
               <div style={{
                 display: 'flex',
@@ -803,7 +814,19 @@ export default function App() {
                 Obteniendo coordenadas satelitales... 📍
               </div>
             ) : (
-              <MapaTuristico lon={lon} lat={lat} radioM={radioM} altura="100%" />
+              <MapaTuristico
+                lon={lon}
+                lat={lat}
+                radioM={radioM}
+                altura="100%"
+                filtrar={filtrar}
+                estadoCatalogo={estadoCatalogo}
+                errorCatalogo={errorCatalogo}
+                estaOffline={estaOffline}
+                datosDesdeCache={datosDesdeCache}
+                actualizadoEn={actualizadoEn}
+                forzarSincronizar={forzarSincronizar}
+              />
             )}
           </div>
 
@@ -822,7 +845,7 @@ export default function App() {
         </p>
       </footer>
 
-      {/* ── BANNER DE SUPERVIVENCIA OFFLINE (Fase 5) ── */}
+      {/* ── BANNER DE SUPERVIVENCIA OFFLINE ── */}
       <EstadoConexion />
 
     </div>
