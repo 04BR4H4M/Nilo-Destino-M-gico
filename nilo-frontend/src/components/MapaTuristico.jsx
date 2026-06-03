@@ -103,26 +103,36 @@ export default function MapaTuristico({
   forzarSincronizar,
 }) { 
   
-  /// 1. Filtrado 100% local (Distancia + Categoría)
+ // 1. Filtrado 100% local (Distancia + Categoría)
   const atractivosFiltrados = useMemo(() => {
     if (!filtrar) return []
     
-    // Etapa A: Filtrar por distancia (lo que ya tenías)
+    // Etapa A: Filtrar por distancia
     const porDistancia = filtrar(lat, lon, radioM)
     
-    // Etapa B: Filtrar por categoría (lo nuevo)
+    // Etapa B: Filtrar por categoría
     if (!categoriaActiva) return porDistancia
     return porDistancia.filter(atractivo => {
-      const nombreCat = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;
+      let nombreCat = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;
+      
+      // 👇 LA VACUNA CONTRA EL TEXTO ROTO (MOJIBAKE) 👇
+      if (nombreCat === 'GastronomÃ­a') {
+        nombreCat = 'Gastronomía';
+      }
+      
       return nombreCat === categoriaActiva;
     })
-  }, [filtrar, lat, lon, radioM, categoriaActiva]) // <-- 2. Añadimos categoriaActiva aquí
+  }, [filtrar, lat, lon, radioM, categoriaActiva])
 
-  // 2. Memoizar iconos para no recrearlos
+  // 2. Memoizar iconos para no recrearlos (¡El que se nos había borrado!)
   const iconosPorCategoria = useMemo(() => {
     const mapa = {}
     atractivosFiltrados.forEach(({ categoria }) => {
-      const nombreCat = typeof categoria === 'object' ? categoria.nombre : categoria;
+      let nombreCat = typeof categoria === 'object' ? categoria.nombre : categoria;
+      
+      // También vacunamos aquí para que el color del pin no falle
+      if (nombreCat === 'GastronomÃ­a') nombreCat = 'Gastronomía';
+      
       if (!mapa[nombreCat]) mapa[nombreCat] = crearIconoCategoria(nombreCat)
     })
     return mapa
@@ -253,7 +263,13 @@ export default function MapaTuristico({
             {atractivosFiltrados.map((atractivo) => {
               const coords = extraerCoords(atractivo)
               if (!coords) return null
-              const nombreCategoria = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;  
+             let nombreCategoria = typeof atractivo.categoria === 'object' ? atractivo.categoria.nombre : atractivo.categoria;  
+              
+              // 👇 LA VACUNA EN EL RENDERIZADO (El toque final) 👇
+              if (nombreCategoria === 'GastronomÃ­a') {
+                nombreCategoria = 'Gastronomía';
+              }
+              
               const distanciaReal = atractivo.distancia_m || haversineM(lat, lon, coords[0], coords[1]);
               const direccion = calcularDireccionCardinal(lat, lon, coords[0], coords[1]);
 
@@ -261,7 +277,7 @@ export default function MapaTuristico({
                 <Marker
                   key={atractivo.id}
                   position={coords}
-                  icon={iconosPorCategoria[atractivo.categoria] ?? crearIconoCategoria(atractivo.categoria)}
+                 icon={iconosPorCategoria[nombreCategoria] ?? crearIconoCategoria(nombreCategoria)}
                 >
                   <Popup className="popup-nilo" maxWidth={260} minWidth={240}>
                       {atractivo.imagen_principal && (
@@ -280,7 +296,8 @@ export default function MapaTuristico({
                     )}
 
                     <div className="popup-nilo__contenido" style={{ padding: atractivo.imagen_principal ? '12px' : '' }}>
-                     <span className="popup-nilo__categoria">{nombreCategoria}</span>
+                      {/* 👇 Usamos la variable curada para el texto de la tarjeta */}
+                      <span className="popup-nilo__categoria">{nombreCategoria}</span>
                       <h3 className="popup-nilo__nombre" style={{ marginBottom: '6px' }}>{atractivo.nombre}</h3>
                       
                       {atractivo.descripcion_corta && (
@@ -329,7 +346,14 @@ export default function MapaTuristico({
         <footer className="mapa-turistico__leyenda" aria-label="Leyenda del mapa">
           {Object.entries(CATEGORIA_COLORES)
             .filter(([cat]) => cat !== 'default' && atractivosFiltrados.some((a) => {
-              const nombreCat = typeof a.categoria === 'object' ? a.categoria.nombre : a.categoria;
+              // 1. Extraemos el nombre
+              let nombreCat = typeof a.categoria === 'object' ? a.categoria.nombre : a.categoria;
+              
+              // 👇 LA ÚLTIMA VACUNA PARA LA LEYENDA 👇
+              if (nombreCat === 'GastronomÃ­a') {
+                nombreCat = 'Gastronomía';
+              }
+              
               return nombreCat === cat;
             }))
             .map(([cat, color]) => (

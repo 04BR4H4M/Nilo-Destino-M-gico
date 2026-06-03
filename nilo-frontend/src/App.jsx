@@ -623,6 +623,7 @@ export default function App() {
 
   // ── Vista activa: turista ↔ admin ─────────────────────────────────────────────
   const [vistaActual, setVistaActual] = useState('turista')
+  const [categoriaActiva, setCategoriaActiva] = useState(null)
 
   // ── Geolocalización del usuario ───────────────────────────────────────────────
   // Fallback a coordenadas de Nilo si el usuario deniega o hay error.
@@ -783,16 +784,46 @@ export default function App() {
             </div>
 
             <div className="carta">
-              <p className="carta__etiqueta">Leyenda</p>
+              <p className="carta__etiqueta">Categorías</p>
+              
+              {/* Botón para resetear filtros (Ver Todas) */}
+              <button 
+                onClick={() => setCategoriaActiva(null)}
+                style={{
+                  width: '100%', padding: '8px', marginBottom: '12px',
+                  background: categoriaActiva === null ? 'var(--dorado)' : 'transparent',
+                  color: categoriaActiva === null ? 'white' : 'var(--tierra-claro)',
+                  border: `1px solid ${categoriaActiva === null ? 'var(--dorado)' : 'var(--crema-oscura)'}`,
+                  borderRadius: 'var(--radio-sm)', cursor: 'pointer',
+                  fontWeight: categoriaActiva === null ? 'bold' : 'normal',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🌍 Ver Todas
+              </button>
+
+              {/* Lista de categorías interactiva */}
               {[
                 ['Patrimonio Cultural', '#c8830a'],
                 ['Naturaleza',          '#2d6a4f'],
                 ['Gastronomía',         '#c1440e'],
                 ['Aventura',            '#1a4f8a'],
               ].map(([nombre, color]) => (
-                <div className="dato-fila" key={nombre}>
-                  <span className="dato-fila__clave" style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                    <svg width="10" height="10"><circle cx="5" cy="5" r="5" fill={color}/></svg>
+                <div 
+                  className="dato-fila" 
+                  key={nombre}
+                  onClick={() => setCategoriaActiva(nombre)}
+                  style={{ 
+                    cursor: 'pointer',
+                    background: categoriaActiva === nombre ? '#fff9f0' : 'transparent',
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: categoriaActiva === nombre ? `1px solid ${color}` : '1px solid transparent',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span className="dato-fila__clave" style={{ display:'flex', alignItems:'center', gap:'8px', color: categoriaActiva === nombre ? 'var(--tinta)' : 'var(--gris-arena)', fontWeight: categoriaActiva === nombre ? 'bold' : 'normal' }}>
+                    <svg width="12" height="12"><circle cx="6" cy="6" r="6" fill={color}/></svg>
                     {nombre}
                   </span>
                 </div>
@@ -820,6 +851,7 @@ export default function App() {
                 radioM={radioM}
                 altura="100%"
                 filtrar={filtrar}
+                categoriaActiva={categoriaActiva}
                 estadoCatalogo={estadoCatalogo}
                 errorCatalogo={errorCatalogo}
                 estaOffline={estaOffline}
