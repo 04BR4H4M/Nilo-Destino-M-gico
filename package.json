@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@turf/turf": "^7.3.5",
+    "geojson-path-finder": "^2.1.0"
+  }
+}

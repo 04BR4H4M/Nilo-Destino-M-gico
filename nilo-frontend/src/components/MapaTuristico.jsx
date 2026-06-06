@@ -20,7 +20,7 @@
  * LÓGICA: INTACTA — ninguna línea de Haversine, filtrado, coordenadas
  *         ni manejo de catálogo fue modificada.
  */
-
+import { useRutaOffline } from '../hooks/useRutaOffline'
 import { useMemo, useState, useCallback, useRef } from 'react'
 import {
   MapContainer,
@@ -29,6 +29,7 @@ import {
   Popup,
   Circle,
   useMap,
+  Polyline
 } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -136,7 +137,8 @@ function ControlesFlotantes({ onCentrar, lat, lon }) {
 }
 
 // ── Bottom Sheet ──────────────────────────────────────────────────────────────
-function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon }) {
+// Añadimos onTrazarRuta y motorListo
+  function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon, onTrazarRuta, motorListo }) {
   const handleDragClose = useRef(null)
 
   if (!atractivo) return null
@@ -261,13 +263,25 @@ function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon }) {
             <p className="bottom-sheet__desc">{atractivo.descripcion_corta}</p>
           )}
 
-          {/* Botón de navegación */}
+          {/* Botón de navegación NATIVA */}
           {coords && (
-            <button className="bottom-sheet__nav-btn" onClick={abrirNavegacion}>
+            <button 
+              className="bottom-sheet__nav-btn" 
+              onClick={() => onTrazarRuta(coords[0], coords[1])}
+              disabled={!motorListo}
+              style={{
+                width: '100%', padding: '12px', marginTop: '10px',
+                background: motorListo ? 'var(--dorado)' : 'var(--crema-oscura)',
+                color: motorListo ? '#fff' : 'var(--gris-arena)',
+                border: 'none', borderRadius: '8px', fontWeight: 'bold', 
+                cursor: motorListo ? 'pointer' : 'not-allowed',
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+              }}
+            >
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 11l19-9-9 19-2-8-8-2z"/>
               </svg>
-              Cómo llegar — Google Maps
+              {motorListo ? '📍 Trazar ruta en el mapa' : 'Cargando mapa offline...'}
             </button>
           )}
         </div>
@@ -275,7 +289,6 @@ function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon }) {
     </>
   )
 }
-
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function MapaSkeleton({ mensaje = 'Cargando atractivos…' }) {
   return (
@@ -307,22 +320,44 @@ export default function MapaTuristico({
   onRadioChange,       // (metros: number) => void
 }) {
 
-  // ── Estado visual del bottom sheet ─────────────────────────────────────────
+ // ── Estado visual del bottom sheet ─────────────────────────────────────────
   const [atractivoSeleccionado, setAtractivoSeleccionado] = useState(null)
 
-  // ── LÓGICA DE FILTRADO: INTACTA ────────────────────────────────────────────
+  // 👇 INYECTAR HOOK Y ESTADO DE RUTA
+  const { calcularRuta, motorListo } = useRutaOffline()
+  const [rutaTrazada, setRutaTrazada] = useState(null)
+
+  const trazarHaciaAtractivo = useCallback((destinoLat, destinoLon) => {
+    const coordsRuta = calcularRuta(lat, lon, destinoLat, destinoLon)
+    if (coordsRuta) {
+      setRutaTrazada(coordsRuta)
+      // Opcional: cerramos el panel para que el usuario vea la ruta completa
+      setAtractivoSeleccionado(null) 
+    } else {
+      alert("No hay un camino directo mapeado. Usa la brújula o acércate a una vía principal.")
+    }
+  }, [calcularRuta, lat, lon])
+
+// ── LÓGICA DE FILTRADO: ESTILO GOOGLE MAPS ──
   const atractivosFiltrados = useMemo(() => {
+    // Si no hay función de filtrar (catálogo no cargado), devolvemos vacío
     if (!filtrar) return []
-    const porDistancia = filtrar(lat, lon, radioM)
-    if (!categoriaActiva) return porDistancia
-    return porDistancia.filter(atractivo => {
+    
+    // Obtenemos TODOS los atractivos (le pasamos un radio infinito o ignoramos el filtro)
+    // Suponiendo que tu función filtrar() actual requería un radio, le pasamos un número gigante
+    const todosLosAtractivos = filtrar(lat, lon, 9999999) 
+
+    if (!categoriaActiva) return todosLosAtractivos
+
+    // Filtramos solo por la categoría seleccionada en los chips
+    return todosLosAtractivos.filter(atractivo => {
       let nombreCat = typeof atractivo.categoria === 'object'
         ? atractivo.categoria.nombre
         : atractivo.categoria
       if (nombreCat === 'GastronomÃ­a') nombreCat = 'Gastronomía'
       return nombreCat === categoriaActiva
     })
-  }, [filtrar, lat, lon, radioM, categoriaActiva])
+  }, [filtrar, lat, lon, categoriaActiva])
 
   const iconosPorCategoria = useMemo(() => {
     const mapa = {}
@@ -338,9 +373,12 @@ export default function MapaTuristico({
   const revalidando     = estadoCatalogo === 'revalidando'
   const sinDatos        = estadoCatalogo === 'sin-datos'
 
-  // ── Handlers visuales ─────────────────────────────────────────────────────
+// ── Handlers visuales ─────────────────────────────────────────────────────
   const abrirSheet = useCallback((atractivo) => setAtractivoSeleccionado(atractivo), [])
-  const cerrarSheet = useCallback(() => setAtractivoSeleccionado(null), [])
+  const cerrarSheet = useCallback(() => {
+    setAtractivoSeleccionado(null)
+    setRutaTrazada(null) // Limpia la línea azul al cerrar
+  }, [])
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -377,15 +415,6 @@ export default function MapaTuristico({
               maxZoom={19}
             />
 
-            <Circle
-              center={[lat, lon]}
-              radius={radioM}
-              pathOptions={{
-                color: '#c8830a', weight: 1.5, opacity: 0.4,
-                fillColor: '#c8830a', fillOpacity: 0.04, dashArray: '6 4',
-              }}
-            />
-
             {/* Marcador de origen */}
             <Marker
               position={[lat, lon]}
@@ -411,7 +440,7 @@ export default function MapaTuristico({
                 ? atractivo.categoria.nombre
                 : atractivo.categoria
               if (nombreCategoria === 'GastronomÃ­a') nombreCategoria = 'Gastronomía'
-
+            
               return (
                 <Marker
                   key={atractivo.id}
@@ -424,6 +453,17 @@ export default function MapaTuristico({
                 />
               )
             })}
+
+            {/* 👇 LA RUTA VA AQUÍ AFUERA, DESPUÉS DE LOS MARCADORES 👇 */}
+            {rutaTrazada && (
+              <Polyline 
+                positions={rutaTrazada} 
+                color="#1a4f8a" 
+                weight={6} 
+                opacity={0.8} 
+                dashArray="10, 10" 
+              />
+            )}
 
             {/* Controles flotantes dentro del contexto del mapa */}
             <ControlesFlotantes onCentrar={cerrarSheet} lat={lat} lon={lon} />
@@ -535,6 +575,8 @@ export default function MapaTuristico({
         onCerrar={cerrarSheet}
         lat={lat}
         lon={lon}
+        onTrazarRuta={trazarHaciaAtractivo}
+        motorListo={motorListo}
       />
 
       {/* ── Atribución discreta ── */}

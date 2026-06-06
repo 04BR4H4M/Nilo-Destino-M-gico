@@ -85,14 +85,14 @@ define(['./workbox-5a130785'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.99fhgp8iq1"
+    "revision": "0.uers950q88o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/],
     denylist: [/^\/api\//, /^\/static\//, /\/sw\.js$/, /\/workbox-.*\.js$/]
   }));
-  workbox.registerRoute(/^http:\/\/192\.168\.100\.117:8000\/api\//, new workbox.NetworkFirst({
+  workbox.registerRoute(/^http:\/\/127\.0\.0\.1:8000\/api\//, new workbox.NetworkFirst({
     "cacheName": "nilo-api-v1",
     "networkTimeoutSeconds": 4,
     "matchOptions": {
@@ -105,7 +105,7 @@ define(['./workbox-5a130785'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(/^http:\/\/192\.168\.100\.117:8000\/static\/uploads\//, new workbox.CacheFirst({
+  workbox.registerRoute(/^http:\/\/127\.0\.0\.1:8000\/static\/uploads\//, new workbox.CacheFirst({
     "cacheName": "nilo-imagenes-atractivos-v1",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
