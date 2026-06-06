@@ -52,18 +52,17 @@
 
 body {
   margin: 0;
+  padding: 0;
+  overflow: hidden; /* Evita que la página entera haga scroll */
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  display: block;
+  border: none;
 }
 
 h1,
@@ -108,4 +107,49 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+/* =========================================================
+   📱 MODO CELULAR (RESPONSIVE) - PARCHE ANTI-SCROLL
+   ========================================================= */
+@media (max-width: 1024px) {
+  /* 1. Liberar la página para que el scroll sea normal y nativo */
+  html, body, #root {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* 2. Forzar la estructura en columna */
+  main, .app-contenedor {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 3. Las tarjetas toman el 100% del ancho */
+  aside, .panel-lateral, .carta {
+    width: 100% !important;
+    position: relative !important;
+  }
+
+  /* 4. LA CURA: Altura FIJA para el mapa. No más recálculos al hacer scroll */
+  .mapa-turistico {
+    width: 100% !important;
+    height: 500px !important; /* Altura estricta en píxeles */
+    flex: none !important; 
+    display: block !important;
+    position: relative !important;
+    margin-bottom: 40px !important;
+  }
+
+  /* 5. Obligar al lienzo del mapa a respetar su nueva caja de 500px */
+  .leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+    z-index: 1 !important;
+  }
 }

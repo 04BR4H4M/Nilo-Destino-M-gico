@@ -93,6 +93,14 @@ y **Rutas Históricas** con soporte espacial PostGIS.
     lifespan=lifespan,
 )
 
+# 👇 INYECTA ESTO EXACTAMENTE AQUÍ 👇
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Abre la puerta para que el celular pase
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── Middlewares ────────────────────────────────────────────────────────────────
 #
