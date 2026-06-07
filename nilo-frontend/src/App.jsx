@@ -17,6 +17,7 @@ import AdminPanel from './components/AdminPanel'
 import { healthService } from './services/api'
 import EstadoConexion from './components/EstadoConexion'
 import { useCatalogo } from './hooks/useCatalogo'
+import Login from './components/Login';
 
 // ─── CSS GLOBAL ───────────────────────────────────────────────────────────────
 // Declarado como string e inyectado vía <style> para tenerlo todo en un archivo.
@@ -621,9 +622,32 @@ export default function App() {
   const [radioM, setRadioM] = useState(5000)
   const [apiStatus, setApiStatus] = useState('comprobando')
 
-  // ── Vista activa: turista ↔ admin ─────────────────────────────────────────────
-  const [vistaActual, setVistaActual] = useState('turista')
   const [categoriaActiva, setCategoriaActiva] = useState(null)
+ // ── Vista activa: turista ↔ admin ↔ login ────────────────────────────────────
+  const [vistaActual, setVistaActual] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    
+    // 1. Si pide explícitamente el login, se lo mostramos
+    if (params.get('login') === 'true') return 'login' 
+    
+    // 2. Si intenta entrar al admin...
+    if (params.get('admin') === 'true') {
+      // Le revisamos los bolsillos: ¿Tiene el token de seguridad guardado?
+      const tienePaseVip = localStorage.getItem('token_nilo')
+      
+      if (!tienePaseVip) {
+        // ¡Atrapado! Intentó entrar sin token. Lo mandamos a la pantalla de login.
+        window.history.replaceState(null, '', '/?login=true')
+        return 'login'
+      }
+      
+      // Si tiene el token, lo dejamos pasar al panel
+      return 'admin'
+    }
+    
+    // 3. Por defecto, es un turista normal
+    return 'turista'
+  })
 
   // ── Geolocalización del usuario ───────────────────────────────────────────────
   // Fallback a coordenadas de Nilo si el usuario deniega o hay error.
@@ -686,200 +710,76 @@ export default function App() {
     error: 'API inaccesible',
   }
 
-  return (
-    <div className="app">
-
-      {/* ── HEADER ── */}
-      <header className="app-header" role="banner">
-        <div className="app-header__inner">
-          <a href="/" className="app-header__marca" aria-label="Inicio — Nilo Destino Mágico">
-            <div className="app-header__emblema" aria-hidden="true">🌿</div>
-            <div className="app-header__nombre">
-              Nilo
-              <span>Destino Mágico</span>
-            </div>
-          </a>
-
-          <nav className="app-header__nav" aria-label="Navegación principal">
-            {/* Botones para alternar vistas */}
-            <button
-              className={`nav-btn ${vistaActual === 'turista' ? 'activo' : ''}`}
-              onClick={() => setVistaActual('turista')}
-            >
-              Explorar Mapa
-            </button>
-            <button
-              className={`nav-btn ${vistaActual === 'admin' ? 'activo' : ''}`}
-              onClick={() => setVistaActual('admin')}
-            >
-              Administración
-            </button>
-
-            <div
-              className={`status-dot status-dot--${apiStatus === 'comprobando' ? '' : apiStatus}`}
-              role="status"
-              aria-live="polite"
-              title="Estado de la API"
-            >
-              <span className="status-dot__indicador" />
-              {labelStatus[apiStatus]}
-            </div>
-          </nav>
-        </div>
-      </header>
-
-      {/* ── MAIN CONDICIONAL (Muestra Turista o Admin) ── */}
-      {vistaActual === 'admin' ? (
-        <main role="main">
-          <AdminPanel />
+return (
+    <>
+      {vistaActual === 'login' ? (
+        /* ── PANTALLA DE LOGIN ── */
+        <Login />
+      ) : vistaActual === 'admin' ? (
+        /* ── PANEL DE ADMINISTRADOR ── */
+        <main role="main" style={{ minHeight: '100dvh', background: 'var(--crema)' }}>
+        <AdminPanel />
+          
+          {/* 🔒 BOTÓN DE ESCAPE SEGURO (CERRAR SESIÓN) */}
+          <button 
+            onClick={() => {
+              // 1. Quemamos las credenciales de la memoria del navegador
+              localStorage.removeItem('token_nilo');
+              localStorage.removeItem('usuario_nilo');
+              // 2. Redireccionamos a la raíz pública libre de peligro
+              window.location.href = '/';
+            }}
+            style={{ 
+              position: 'fixed', 
+              bottom: '20px', 
+              left: '20px', 
+              zIndex: 1000, 
+              background: '#e63946', // Rojo de alerta para indicar acción destructiva de sesión
+              color: 'white', 
+              padding: '10px 16px', 
+              borderRadius: '8px', 
+              border: 'none', 
+              cursor: 'pointer', 
+              boxShadow: '0 4px 12px rgba(230,57,70,0.35)',
+              fontWeight: '600',
+              fontFamily: 'var(--fuente-ui)'
+            }}
+          >
+            🔒 Cerrar Sesión y Salir
+          </button>
         </main>
       ) : (
-        <main className="app-main" role="main">
-
-          {/* Panel lateral izquierdo */}
-          <aside className="panel-lateral" aria-label="Información del municipio">
-
-            <div className="carta">
-              <p className="carta__etiqueta">Cundinamarca · Colombia</p>
-              <h1 className="carta__titulo">Nilo,<br/>Destino Mágico</h1>
-              <p className="carta__descripcion">
-                Municipio ribereño del río Magdalena, reconocido por su biodiversidad,
-                turismo de naturaleza y el legado de la Hacienda Calandaima.
-              </p>
-              <div className="dato-fila">
-                <span className="dato-fila__clave">Altitud</span>
-                <span className="dato-fila__valor">354 m.s.n.m.</span>
-              </div>
-              <div className="dato-fila">
-                <span className="dato-fila__clave">Temperatura</span>
-                <span className="dato-fila__valor">28 °C promedio</span>
-              </div>
-              <div className="dato-fila">
-                <span className="dato-fila__clave">Tu ubicación</span>
-                <span className="dato-fila__valor">
-                  {ubicacionCargando ? '…' : `${lat.toFixed(4)}°N, ${Math.abs(lon).toFixed(4)}°O`}
-                </span>
-              </div>
+        /* Contenedor limpio al 100% de la pantalla para el turista */
+        <main style={{ width: '100vw', height: '100dvh', margin: 0, padding: 0, position: 'relative', overflow: 'hidden' }}>
+          
+          {ubicacionCargando ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--dorado)', background: 'var(--crema)' }}>
+              Obteniendo coordenadas satelitales... 📍
             </div>
-
-            <div className="carta">
-              <p className="carta__etiqueta">Filtrar búsqueda</p>
-              <div className="control-radio">
-                <label htmlFor="slider-radio">
-                  Radio de búsqueda alrededor de tu ubicación
-                </label>
-                <input
-                  id="slider-radio"
-                  type="range"
-                  min={1000}
-                  max={20000}
-                  step={500}
-                  value={radioM}
-                  onChange={(e) => setRadioM(Number(e.target.value))}
-                />
-                <p className="control-radio__valor">
-                  {(radioM / 1000).toFixed(1)} km
-                </p>
-              </div>
-            </div>
-
-            <div className="carta">
-              <p className="carta__etiqueta">Categorías</p>
-              
-              {/* Botón para resetear filtros (Ver Todas) */}
-              <button 
-                onClick={() => setCategoriaActiva(null)}
-                style={{
-                  width: '100%', padding: '8px', marginBottom: '12px',
-                  background: categoriaActiva === null ? 'var(--dorado)' : 'transparent',
-                  color: categoriaActiva === null ? 'white' : 'var(--tierra-claro)',
-                  border: `1px solid ${categoriaActiva === null ? 'var(--dorado)' : 'var(--crema-oscura)'}`,
-                  borderRadius: 'var(--radio-sm)', cursor: 'pointer',
-                  fontWeight: categoriaActiva === null ? 'bold' : 'normal',
-                  transition: 'all 0.2s'
-                }}
-              >
-                🌍 Ver Todas
-              </button>
-
-              {/* Lista de categorías interactiva */}
-              {[
-                ['Patrimonio Cultural', '#c8830a'],
-                ['Naturaleza',          '#2d6a4f'],
-                ['Gastronomía',         '#c1440e'],
-                ['Aventura',            '#1a4f8a'],
-              ].map(([nombre, color]) => (
-                <div 
-                  className="dato-fila" 
-                  key={nombre}
-                  onClick={() => setCategoriaActiva(nombre)}
-                  style={{ 
-                    cursor: 'pointer',
-                    background: categoriaActiva === nombre ? '#fff9f0' : 'transparent',
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    border: categoriaActiva === nombre ? `1px solid ${color}` : '1px solid transparent',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <span className="dato-fila__clave" style={{ display:'flex', alignItems:'center', gap:'8px', color: categoriaActiva === nombre ? 'var(--tinta)' : 'var(--gris-arena)', fontWeight: categoriaActiva === nombre ? 'bold' : 'normal' }}>
-                    <svg width="12" height="12"><circle cx="6" cy="6" r="6" fill={color}/></svg>
-                    {nombre}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          {/* Mapa principal */}
-          <div className="mapa-wrap" role="region" aria-label="Mapa interactivo de atractivos turísticos">
-            {ubicacionCargando ? (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '100%',
-                fontStyle: 'italic',
-                color: 'var(--gris-arena)',
-              }}>
-                Obteniendo coordenadas satelitales... 📍
-              </div>
-            ) : (
-              <MapaTuristico
-                lon={lon}
-                lat={lat}
-                radioM={radioM}
-                altura="100%"
-                filtrar={filtrar}
-                categoriaActiva={categoriaActiva}
-                estadoCatalogo={estadoCatalogo}
-                errorCatalogo={errorCatalogo}
-                estaOffline={estaOffline}
-                datosDesdeCache={datosDesdeCache}
-                actualizadoEn={actualizadoEn}
-                forzarSincronizar={forzarSincronizar}
-              />
-            )}
-          </div>
-
+          ) : (
+            <MapaTuristico
+              lon={lon}
+              lat={lat}
+              radioM={radioM}
+              altura="100%"
+              filtrar={filtrar}
+              categoriaActiva={categoriaActiva}
+              estadoCatalogo={estadoCatalogo}
+              errorCatalogo={errorCatalogo}
+              estaOffline={estaOffline}
+              datosDesdeCache={datosDesdeCache}
+              actualizadoEn={actualizadoEn}
+              forzarSincronizar={forzarSincronizar}
+              // 👇 CONEXIÓN VITAL PARA QUE LOS CHIPS NUEVOS FUNCIONEN 👇
+              onCategoriaChange={setCategoriaActiva}
+              onRadioChange={setRadioM} 
+            />
+          )}        
         </main>
       )}
 
-      {/* ── FOOTER ── */}
-      <footer className="app-footer" role="contentinfo">
-        <p>
-          © {new Date().getFullYear()} Nilo Destino Mágico ·{' '}
-          Datos ©{' '}
-          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">
-            OpenStreetMap
-          </a>{' '}
-          · Plataforma turística con PostGIS + FastAPI + React
-        </p>
-      </footer>
-
       {/* ── BANNER DE SUPERVIVENCIA OFFLINE ── */}
       <EstadoConexion />
-
-    </div>
+    </>
   )
 }

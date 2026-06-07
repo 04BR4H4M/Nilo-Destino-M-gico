@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
+from app.api import auth
 from app.api.v1.routers import atractivos, health
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -93,6 +94,14 @@ y **Rutas Históricas** con soporte espacial PostGIS.
     lifespan=lifespan,
 )
 
+# 👇 INYECTA ESTO EXACTAMENTE AQUÍ 👇
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Abre la puerta para que el celular pase
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── Middlewares ────────────────────────────────────────────────────────────────
 #
@@ -171,6 +180,9 @@ app.include_router(
     tags=["Atractivos Turísticos"],
 )
 
+app.include_router(
+    auth.router, prefix="/api/v1/auth", 
+    tags=["Autenticación"])
 # Futuros routers:
 # app.include_router(prestadores.router, prefix=settings.api_v1_prefix, tags=["Prestadores"])
 # app.include_router(rutas.router,       prefix=settings.api_v1_prefix, tags=["Rutas Históricas"])
