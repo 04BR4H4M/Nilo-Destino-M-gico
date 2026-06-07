@@ -46,9 +46,11 @@ const apiClient = axios.create({
 // ── Interceptor de REQUEST ─────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
-    // Espacio para inyectar JWT cuando se implemente auth:
-    // const token = localStorage.getItem('access_token')
-    // if (token) config.headers.Authorization = `Bearer ${token}`
+    // 👇 1. BUSCAMOS EL PASE VIP Y LO INYECTAMOS
+    const token = localStorage.getItem('token_nilo')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
 
     if (import.meta.env.DEV) {
       console.debug(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.params ?? '')
@@ -57,7 +59,6 @@ apiClient.interceptors.request.use(
   },
   (error) => Promise.reject(error),
 )
-
 // ── Interceptor de RESPONSE ───────────────────────────────────────────────────
 apiClient.interceptors.response.use(
   (response) => {
@@ -70,8 +71,12 @@ apiClient.interceptors.response.use(
     const status = error.response?.status
     const url    = error.config?.url
 
-    if (status === 401) {
-      console.warn('[API] 401 — sesión expirada')
+   if (status === 401) {
+      console.warn('[API] 401 — sesión expirada o token inválido')
+      // 👇 2. EXPULSAMOS AL INTRUSO
+      localStorage.removeItem('token_nilo')
+      localStorage.removeItem('usuario_nilo')
+      window.location.href = '/?login=true'
     } else if (status === 404) {
       console.warn(`[API] 404 — recurso no encontrado: ${url}`)
     } else if (status >= 500) {

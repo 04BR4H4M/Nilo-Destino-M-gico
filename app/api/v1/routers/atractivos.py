@@ -45,6 +45,10 @@ from app.schemas.atractivo import (
 
 from app.services.atractivo_service import AtractivoService
 
+from app.api.deps import obtener_usuario_actual
+from app.models.usuario import UsuarioAdmin
+from fastapi import Depends
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/atractivos")
@@ -135,6 +139,7 @@ async def listar_atractivos(
 async def crear_atractivo(
     datos: AtractivoCreate,
     db: DbSession,
+    current_user: UsuarioAdmin = Depends(obtener_usuario_actual)
 ) -> AtractivoResponse:
     """
     Registra un nuevo atractivo turístico en la plataforma.
@@ -235,7 +240,8 @@ async def obtener_atractivo(
 async def actualizar_atractivo(
     atractivo_id: uuid.UUID,
     payload: AtractivoUpdate,
-    db: DbSession # Asegúrate de usar tu inyector de sesión habitual
+    db: DbSession,
+    current_user: UsuarioAdmin = Depends(obtener_usuario_actual)
 ):
     """
     Actualiza parcialmente un atractivo turístico. 
@@ -292,6 +298,7 @@ async def actualizar_atractivo(
 async def eliminar_atractivo(
     atractivo_id: uuid.UUID,
     db: DbSession,
+    current_user: UsuarioAdmin = Depends(obtener_usuario_actual)
 ) -> None:
     """
     Realiza un **soft-delete**: marca el atractivo como `activo = false`.
@@ -314,7 +321,8 @@ async def eliminar_atractivo(
 async def subir_imagen_atractivo(
     id: uuid.UUID,
     db: DbSession,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_user: UsuarioAdmin = Depends(obtener_usuario_actual)
 ):
     """
     Recibe una imagen, la redimensiona a un máximo de 1080px de ancho,

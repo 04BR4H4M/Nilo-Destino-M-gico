@@ -17,6 +17,7 @@ import AdminPanel from './components/AdminPanel'
 import { healthService } from './services/api'
 import EstadoConexion from './components/EstadoConexion'
 import { useCatalogo } from './hooks/useCatalogo'
+import Login from './components/Login';
 
 // ─── CSS GLOBAL ───────────────────────────────────────────────────────────────
 // Declarado como string e inyectado vía <style> para tenerlo todo en un archivo.
@@ -621,13 +622,32 @@ export default function App() {
   const [radioM, setRadioM] = useState(5000)
   const [apiStatus, setApiStatus] = useState('comprobando')
 
-  // ── Vista activa: turista ↔ admin ─────────────────────────────────────────────
-  const [vistaActual, setVistaActual] = useState(() => {
-    // Si la URL termina en "?admin=true", abre el panel. Si no, es turista.
-    const params = new URLSearchParams(window.location.search)
-    return params.get('admin') === 'true' ? 'admin' : 'turista'
-  })
   const [categoriaActiva, setCategoriaActiva] = useState(null)
+ // ── Vista activa: turista ↔ admin ↔ login ────────────────────────────────────
+  const [vistaActual, setVistaActual] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    
+    // 1. Si pide explícitamente el login, se lo mostramos
+    if (params.get('login') === 'true') return 'login' 
+    
+    // 2. Si intenta entrar al admin...
+    if (params.get('admin') === 'true') {
+      // Le revisamos los bolsillos: ¿Tiene el token de seguridad guardado?
+      const tienePaseVip = localStorage.getItem('token_nilo')
+      
+      if (!tienePaseVip) {
+        // ¡Atrapado! Intentó entrar sin token. Lo mandamos a la pantalla de login.
+        window.history.replaceState(null, '', '/?login=true')
+        return 'login'
+      }
+      
+      // Si tiene el token, lo dejamos pasar al panel
+      return 'admin'
+    }
+    
+    // 3. Por defecto, es un turista normal
+    return 'turista'
+  })
 
   // ── Geolocalización del usuario ───────────────────────────────────────────────
   // Fallback a coordenadas de Nilo si el usuario deniega o hay error.
@@ -690,17 +710,42 @@ export default function App() {
     error: 'API inaccesible',
   }
 
-  return (
+return (
     <>
-      {vistaActual === 'admin' ? (
+      {vistaActual === 'login' ? (
+        /* ── PANTALLA DE LOGIN ── */
+        <Login />
+      ) : vistaActual === 'admin' ? (
+        /* ── PANEL DE ADMINISTRADOR ── */
         <main role="main" style={{ minHeight: '100dvh', background: 'var(--crema)' }}>
-          <AdminPanel />
-          {/* Botón para volver al mapa desde admin */}
+        <AdminPanel />
+          
+          {/* 🔒 BOTÓN DE ESCAPE SEGURO (CERRAR SESIÓN) */}
           <button 
-            onClick={() => setVistaActual('turista')}
-            style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000, background: 'var(--dorado)', color: 'white', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+            onClick={() => {
+              // 1. Quemamos las credenciales de la memoria del navegador
+              localStorage.removeItem('token_nilo');
+              localStorage.removeItem('usuario_nilo');
+              // 2. Redireccionamos a la raíz pública libre de peligro
+              window.location.href = '/';
+            }}
+            style={{ 
+              position: 'fixed', 
+              bottom: '20px', 
+              left: '20px', 
+              zIndex: 1000, 
+              background: '#e63946', // Rojo de alerta para indicar acción destructiva de sesión
+              color: 'white', 
+              padding: '10px 16px', 
+              borderRadius: '8px', 
+              border: 'none', 
+              cursor: 'pointer', 
+              boxShadow: '0 4px 12px rgba(230,57,70,0.35)',
+              fontWeight: '600',
+              fontFamily: 'var(--fuente-ui)'
+            }}
           >
-            ⬅ Volver al Mapa
+            🔒 Cerrar Sesión y Salir
           </button>
         </main>
       ) : (
