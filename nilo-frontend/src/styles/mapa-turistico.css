@@ -747,3 +747,12 @@
 .mapa-shell * {
   box-sizing: border-box;
 }
+
+.info-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}

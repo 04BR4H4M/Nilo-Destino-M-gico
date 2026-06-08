@@ -138,7 +138,7 @@ function ControlesFlotantes({ onCentrar, lat, lon }) {
 
 // ── Bottom Sheet ──────────────────────────────────────────────────────────────
 // Añadimos onTrazarRuta y motorListo
-  function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon, onTrazarRuta, motorListo }) {
+function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon, onTrazarRuta, motorListo, onVerDetalle }){  
   const handleDragClose = useRef(null)
 
   if (!atractivo) return null
@@ -258,37 +258,379 @@ function ControlesFlotantes({ onCentrar, lat, lon }) {
             </div>
           )}
 
-          {/* Descripción */}
+         {/* Descripción cortada para el Bottom Sheet */}
           {atractivo.descripcion_corta && (
-            <p className="bottom-sheet__desc">{atractivo.descripcion_corta}</p>
+            <p className="bottom-sheet__desc" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {atractivo.descripcion_corta}
+            </p>
           )}
 
-          {/* Botón de navegación NATIVA */}
+          {/* ── BOTONES DE ACCIÓN ── */}
           {coords && (
-            <button 
-              className="bottom-sheet__nav-btn" 
-              onClick={() => onTrazarRuta(coords[0], coords[1])}
-              disabled={!motorListo}
-              style={{
-                width: '100%', padding: '12px', marginTop: '10px',
-                background: motorListo ? 'var(--dorado)' : 'var(--crema-oscura)',
-                color: motorListo ? '#fff' : 'var(--gris-arena)',
-                border: 'none', borderRadius: '8px', fontWeight: 'bold', 
-                cursor: motorListo ? 'pointer' : 'not-allowed',
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
-              }}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-              </svg>
-              {motorListo ? '📍 Trazar ruta en el mapa' : 'Cargando mapa offline...'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button 
+                className="bottom-sheet__nav-btn" 
+                onClick={() => onTrazarRuta(coords[0], coords[1])}
+                disabled={!motorListo}
+                style={{
+                  flex: 1, padding: '12px',
+                  background: motorListo ? 'var(--verde-selva, #2d6a4f)' : 'var(--crema-oscura)',
+                  color: motorListo ? '#fff' : 'var(--gris-arena)',
+                  border: 'none', borderRadius: '12px', fontWeight: '600', 
+                  cursor: motorListo ? 'pointer' : 'not-allowed',
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                </svg>
+                {motorListo ? 'Cómo llegar' : 'Cargando...'}
+              </button>
+
+              <button 
+                onClick={onVerDetalle}
+                style={{
+                  flex: 1, padding: '12px',
+                  background: 'var(--crema-oscura, #ede0cc)',
+                  color: 'var(--tinta, #1a1208)',
+                  border: 'none', borderRadius: '12px', fontWeight: '600', 
+                  cursor: 'pointer',
+                  display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}
+              >
+                Conoce más
+              </button>
+            </div>
           )}
         </div>
       </div>
     </>
   )
 }
+
+// ── Vista de Detalle (Pantalla Completa) ──────────────────────────────────────
+function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMapa }) {
+  if (!atractivo) return null;
+
+  const coords = extraerCoords(atractivo);
+  let nombreCategoria = normalizarCategoria(obtenerNombreCategoria(atractivo.categoria));
+  const colorCat = CATEGORIA_COLORES[nombreCategoria] ?? CATEGORIA_COLORES.default;
+  const imagenUrl = atractivo.imagen_principal
+    ? `${(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace('/api/v1', '')}${atractivo.imagen_principal}`
+    : null;
+
+  return (
+    <div className="vista-detalle-full" style={{
+      position: 'absolute', inset: 0, zIndex: 9999, background: 'var(--blanco, #fdfaf5)',
+      overflowY: 'auto', animation: 'slideUp 0.3s ease-out', display: 'flex', flexDirection: 'column'
+    }}>
+      {/* Botón Flotante Volver */}
+      <button onClick={onCerrar} style={{
+        position: 'absolute', top: '20px', left: '20px', zIndex: 10000,
+        background: 'rgba(26, 18, 8, 0.6)', color: 'white', border: 'none',
+        padding: '8px 16px', borderRadius: '20px', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: '500'
+      }}>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Volver
+      </button>
+
+     {/* Hero inmersivo */}
+<div
+  style={{
+    height: '45vh',
+    width: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+    flexShrink: 0,
+    background: imagenUrl
+      ? `url(${imagenUrl}) center/cover no-repeat`
+      : colorCat,
+  }}
+>
+  {/* Overlay degradado */}
+  <div
+    style={{
+      position: 'absolute',
+      inset: 0,
+      background:
+        'linear-gradient(to top, rgba(0,0,0,.75), rgba(0,0,0,.25), transparent)',
+    }}
+  />
+
+  {/* Información sobre la imagen */}
+  <div
+    style={{
+      position: 'absolute',
+      bottom: '24px',
+      left: '24px',
+      right: '24px',
+      zIndex: 2,
+      color: '#fff',
+    }}
+  >
+    <span
+      style={{
+        display: 'inline-block',
+        background: 'rgba(255,255,255,.15)',
+        backdropFilter: 'blur(8px)',
+        padding: '6px 12px',
+        borderRadius: '999px',
+        fontSize: '0.8rem',
+        fontWeight: '700',
+        marginBottom: '12px',
+      }}
+    >
+      {nombreCategoria}
+    </span>
+
+    <h1
+      style={{
+        margin: 0,
+        fontSize: '2rem',
+        fontWeight: '800',
+        lineHeight: '1.1',
+      }}
+    >
+      {atractivo.nombre}
+    </h1>
+
+    {atractivo.municipio && (
+      <p
+        style={{
+          marginTop: '10px',
+          marginBottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          opacity: 0.9,
+          fontSize: '0.95rem',
+        }}
+      >
+        📍 {atractivo.municipio}, Cundinamarca
+      </p>
+    )}
+  </div>
+</div>
+
+{/* Contenido */}
+<div
+  style={{
+    flex: 1,
+    background: 'var(--blanco, #fdfaf5)',
+    borderRadius: '24px 24px 0 0',
+    marginTop: '-24px',
+    padding: '30px 24px',
+    position: 'relative',
+  }}
+>
+  {/* Categoría */}
+  <span
+    style={{
+      display: 'inline-block',
+      background: `${colorCat}22`,
+      color: colorCat,
+      padding: '4px 12px',
+      borderRadius: '8px',
+      fontSize: '0.8rem',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+    }}
+  >
+    {nombreCategoria}
+  </span>
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '14px',
+    marginTop: '22px',
+    marginBottom: '30px',
+  }}
+>
+  {/* Cómo llegar */}
+  <button
+    onClick={() => {
+      onCerrar();
+      onTrazarRuta(coords[0], coords[1]);
+    }}
+    style={{
+      background: '#fff',
+      border: 'none',
+      borderRadius: '18px',
+      padding: '22px',
+      boxShadow: '0 4px 16px rgba(0,0,0,.06)',
+      cursor: 'pointer',
+    }}
+  >
+    <div
+      style={{
+        fontSize: '2rem',
+        marginBottom: '10px',
+      }}
+    >
+      🧭
+    </div>
+
+    <div
+      style={{
+        fontWeight: '700',
+        color: '#1a4f8a',
+      }}
+    >
+      Cómo llegar
+    </div>
+  </button>
+
+  {/* Ver mapa */}
+  <button
+  onClick={() => onVerEnMapa?.()}
+  style={{
+    background: '#fff',
+    border: 'none',
+    borderRadius: '18px',
+    padding: '22px',
+    boxShadow: '0 4px 16px rgba(0,0,0,.06)',
+    cursor: 'pointer',
+  }}
+>
+  <div
+    style={{
+      fontSize: '2rem',
+      marginBottom: '10px',
+    }}
+  >
+    🗺️
+  </div>
+
+  <div
+    style={{
+      fontWeight: '700',
+      color: '#1a4f8a',
+    }}
+  >
+    Ver en mapa
+  </div>
+</button>
+</div>
+
+  {/* Historia */}
+ <div
+  style={{
+    marginBottom: '30px',
+  }}
+>
+  <span
+    style={{
+      fontSize: '.85rem',
+      textTransform: 'uppercase',
+      letterSpacing: '1px',
+      color: '#9b8b76',
+      fontWeight: '700',
+    }}
+  >
+    Historia
+  </span>
+
+  <p
+    style={{
+      marginTop: '14px',
+      color: 'var(--tinta-suave)',
+      lineHeight: '1.8',
+      fontSize: '1rem',
+    }}
+  >
+    {atractivo.descripcion_corta}
+  </p>
+</div>
+<div
+  style={{
+    background: '#fff',
+    borderRadius: '20px',
+    padding: '22px',
+    boxShadow: '0 4px 16px rgba(0,0,0,.05)',
+    marginBottom: '30px',
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: '20px',
+    }}
+  >
+    Información
+  </h3>
+
+  <div style={{ marginBottom: '18px' }}>
+    <strong>Categoría</strong>
+    <br />
+    {nombreCategoria}
+  </div>
+
+  <div style={{ marginBottom: '18px' }}>
+    <strong>Municipio</strong>
+    <br />
+    {atractivo.municipio || 'Nilo'}
+  </div>
+
+  <div>
+    <strong>Tipo</strong>
+    <br />
+    Atractivo turístico
+  </div>
+</div>
+  {/* Botón Trazar Ruta */}
+  {coords && (
+    <button
+      onClick={() => {
+        onCerrar();
+        onTrazarRuta(coords[0], coords[1]);
+      }}
+      disabled={!motorListo}
+      style={{
+        width: '100%',
+        padding: '16px',
+        background: motorListo
+          ? 'var(--dorado)'
+          : 'var(--crema-oscura)',
+        color: motorListo
+          ? '#fff'
+          : 'var(--gris-arena)',
+        border: 'none',
+        borderRadius: '14px',
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        cursor: motorListo ? 'pointer' : 'not-allowed',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: motorListo
+          ? '0 8px 24px rgba(200,131,10,0.3)'
+          : 'none',
+      }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+      >
+        <path d="M3 11l19-9-9 19-2-8-8-2z" />
+      </svg>
+
+      {motorListo
+        ? 'Trazar ruta'
+        : 'Cargando mapa offline...'}
+    </button>
+  )}
+  </div>
+</div>
+  )
+}
+
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function MapaSkeleton({ mensaje = 'Cargando atractivos…' }) {
   return (
@@ -322,6 +664,7 @@ export default function MapaTuristico({
 
  // ── Estado visual del bottom sheet ─────────────────────────────────────────
   const [atractivoSeleccionado, setAtractivoSeleccionado] = useState(null)
+  const [viendoDetalle, setViendoDetalle] = useState(false) // NUEVO ESTADO
 
   // 👇 INYECTAR HOOK Y ESTADO DE RUTA
   const { calcularRuta, motorListo } = useRutaOffline()
@@ -333,10 +676,22 @@ export default function MapaTuristico({
       setRutaTrazada(coordsRuta)
       // Opcional: cerramos el panel para que el usuario vea la ruta completa
       setAtractivoSeleccionado(null) 
+      setViendoDetalle(false)
     } else {
       alert("No hay un camino directo mapeado. Usa la brújula o acércate a una vía principal.")
     }
   }, [calcularRuta, lat, lon])
+
+  const abrirSheet = useCallback((atractivo) => {
+    setAtractivoSeleccionado(atractivo)
+    setViendoDetalle(false)
+  }, [])
+  
+  const cerrarSheet = useCallback(() => {
+    setAtractivoSeleccionado(null)
+    setViendoDetalle(false)
+    setRutaTrazada(null)
+  }, [])
 
 // ── LÓGICA DE FILTRADO: ESTILO GOOGLE MAPS ──
   const atractivosFiltrados = useMemo(() => {
@@ -372,13 +727,6 @@ export default function MapaTuristico({
   const cargandoInicial = estadoCatalogo === 'cargando-red' || estadoCatalogo === 'cargando-idb' || estadoCatalogo === 'idle'
   const revalidando     = estadoCatalogo === 'revalidando'
   const sinDatos        = estadoCatalogo === 'sin-datos'
-
-// ── Handlers visuales ─────────────────────────────────────────────────────
-  const abrirSheet = useCallback((atractivo) => setAtractivoSeleccionado(atractivo), [])
-  const cerrarSheet = useCallback(() => {
-    setAtractivoSeleccionado(null)
-    setRutaTrazada(null) // Limpia la línea azul al cerrar
-  }, [])
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -577,10 +925,24 @@ export default function MapaTuristico({
         lon={lon}
         onTrazarRuta={trazarHaciaAtractivo}
         motorListo={motorListo}
-      />
+        onVerDetalle={() => setViendoDetalle(true)}
+        />
+
+        {viendoDetalle && (
+        <VistaDetalle
+          atractivo={atractivoSeleccionado}
+          onCerrar={() => setViendoDetalle(false)}
+          onTrazarRuta={trazarHaciaAtractivo}
+          motorListo={motorListo}
+          onVerEnMapa={() => {
+          setViendoDetalle(false)
+          }}
+        />
+      )}
 
       {/* ── Atribución discreta ── */}
       <div className="mapa-atribucion">
+
         © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
       </div>
     </div>

@@ -183,6 +183,7 @@ app.include_router(
 app.include_router(
     auth.router, prefix="/api/v1/auth", 
     tags=["Autenticación"])
+
 # Futuros routers:
 # app.include_router(prestadores.router, prefix=settings.api_v1_prefix, tags=["Prestadores"])
 # app.include_router(rutas.router,       prefix=settings.api_v1_prefix, tags=["Rutas Históricas"])
