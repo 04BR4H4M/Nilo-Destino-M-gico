@@ -309,10 +309,33 @@ function BottomSheet({ atractivo, onCerrar, lat: centroLat, lon: centroLon, onTr
 }
 
 // ── Vista de Detalle (Pantalla Completa) ──────────────────────────────────────
-function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMapa }) {
+function VistaDetalle({ atractivo, atractivos, onCerrar, onTrazarRuta, motorListo, onVerEnMapa }) {
   if (!atractivo) return null;
 
   const coords = extraerCoords(atractivo);
+ const atractivosCercanos =
+  coords
+    ? atractivos
+        ?.filter(a => a.id !== atractivo.id)
+        ?.map(a => {
+          const c = extraerCoords(a)
+
+          if (!c) return null
+
+          return {
+            ...a,
+            distancia: haversineM(
+              coords[0],
+              coords[1],
+              c[0],
+              c[1]
+            )
+          }
+        })
+        ?.filter(Boolean)
+        ?.sort((a, b) => a.distancia - b.distancia)
+        ?.slice(0, 3)
+    : [];
   let nombreCategoria = normalizarCategoria(obtenerNombreCategoria(atractivo.categoria));
   const colorCat = CATEGORIA_COLORES[nombreCategoria] ?? CATEGORIA_COLORES.default;
   const imagenUrl = atractivo.imagen_principal
@@ -442,7 +465,7 @@ function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMa
 <div
   style={{
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '14px',
     marginTop: '22px',
     marginBottom: '30px',
@@ -513,7 +536,6 @@ function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMa
   </div>
 </button>
 </div>
-
   {/* Historia */}
  <div
   style={{
@@ -579,6 +601,103 @@ function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMa
     Atractivo turístico
   </div>
 </div>
+
+<div
+  style={{
+    background: '#fff',
+    borderRadius: '20px',
+    padding: '22px',
+    boxShadow: '0 4px 16px rgba(0,0,0,.05)',
+    marginBottom: '30px',
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: '16px',
+    }}
+  >
+    🌿 Cerca de este lugar
+  </h3>
+
+  {atractivosCercanos?.map(item => (
+    <div
+      key={item.id}
+      style={{
+        padding: '12px 0',
+        borderBottom: '1px solid #eee',
+      }}
+    >
+      <div
+        style={{
+          fontWeight: '600',
+        }}
+      >
+        {item.nombre}
+      </div>
+
+      <div
+        style={{
+          fontSize: '.9rem',
+          color: '#777',
+        }}
+      >
+        {formatearDistancia(item.distancia)}
+      </div>
+    </div>
+  ))}
+</div>
+
+{/* Ubicación */}
+<div
+  style={{
+    background: '#fff',
+    borderRadius: '20px',
+    padding: '22px',
+    boxShadow: '0 4px 16px rgba(0,0,0,.05)',
+    marginBottom: '30px',
+  }}
+>
+  <h3
+    style={{
+      marginTop: 0,
+      marginBottom: '16px',
+    }}
+  >
+    📍 Ubicación
+  </h3>
+
+  {coords && (
+    <div
+      style={{
+        overflow: 'hidden',
+        borderRadius: '16px',
+        height: '220px',
+      }}
+    >
+      <MapContainer
+        center={coords}
+        zoom={16}
+        style={{
+          height: '100%',
+          width: '100%',
+        }}
+        dragging={false}
+        scrollWheelZoom={false}
+        zoomControl={false}
+        doubleClickZoom={false}
+        attributionControl={false}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        <Marker position={coords} />
+      </MapContainer>
+    </div>
+  )}
+</div>
+
   {/* Botón Trazar Ruta */}
   {coords && (
     <button
@@ -630,7 +749,6 @@ function VistaDetalle({ atractivo, onCerrar, onTrazarRuta, motorListo, onVerEnMa
 </div>
   )
 }
-
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function MapaSkeleton({ mensaje = 'Cargando atractivos…' }) {
   return (
@@ -788,7 +906,7 @@ export default function MapaTuristico({
                 ? atractivo.categoria.nombre
                 : atractivo.categoria
               if (nombreCategoria === 'GastronomÃ­a') nombreCategoria = 'Gastronomía'
-            
+                          
               return (
                 <Marker
                   key={atractivo.id}
@@ -931,6 +1049,7 @@ export default function MapaTuristico({
         {viendoDetalle && (
         <VistaDetalle
           atractivo={atractivoSeleccionado}
+          atractivos={atractivosFiltrados}
           onCerrar={() => setViendoDetalle(false)}
           onTrazarRuta={trazarHaciaAtractivo}
           motorListo={motorListo}
